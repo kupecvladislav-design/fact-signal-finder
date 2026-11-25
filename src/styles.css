@@ -54,6 +54,9 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-soft: var(--destructive-soft);
+  --color-positive: var(--positive);
+  --color-positive-foreground: var(--positive-foreground);
+  --color-positive-soft: var(--positive-soft);
   --font-sans: "Manrope", system-ui, sans-serif;
   --font-display: "Unbounded", system-ui, sans-serif;
   --shadow-soft: var(--shadow-soft);
@@ -94,6 +97,9 @@
   --accent-foreground: oklch(0.99 0 0);
   --destructive: oklch(0.6 0.2 22);
   --destructive-soft: oklch(0.92 0.05 15);
+  --positive: oklch(0.85 0.15 125);
+  --positive-foreground: oklch(0.28 0.07 130);
+  --positive-soft: oklch(0.95 0.055 125);
   --destructive-foreground: oklch(0.99 0 0);
   --border: oklch(0.9 0.03 290);
   --input: oklch(0.9 0.03 290);
@@ -118,6 +124,9 @@
 }
 
 .dark {
+  --positive: oklch(0.78 0.15 125);
+  --positive-foreground: oklch(0.2 0.045 130);
+  --positive-soft: oklch(0.28 0.04 130);
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
@@ -174,3 +183,11 @@
 @keyframes floaty { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-12px) } }
 @utility animate-floaty { animation: floaty 6s ease-in-out infinite; }
 @utility text-gradient { background: var(--gradient-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+.analysis-progress { appearance: none; height: 0.65rem; width: 100%; overflow: hidden; border-radius: 999px; background: var(--secondary); }
+.analysis-progress::-webkit-progress-bar { background: var(--secondary); }
+.analysis-progress::-webkit-progress-value { background: var(--primary); border-radius: 999px; }
+.analysis-progress::-moz-progress-bar { background: var(--primary); border-radius: 999px; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-floaty, .animate-spin, .animate-pulse { animation: none; }
+}

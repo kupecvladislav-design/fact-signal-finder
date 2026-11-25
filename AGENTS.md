@@ -28,3 +28,8 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- Keep the project introduction at `/` and the usable analyzer at `/check` so visitors can navigate between presentation and analysis.
+- Validate analysis inputs in a shared schema; keep gateway calls and prompts in server-only helpers and return only reports and provider-issued source URLs, because uploads and credentials must not leak into browser bundles.
+- Analysis is public, user-initiated and ephemeral; do not persist submissions or add accounts without a separate request.
+- Render report text through a safe Markdown renderer so provider citations are clickable rather than exposed Markdown syntax.

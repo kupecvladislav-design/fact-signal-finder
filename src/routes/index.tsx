@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, BrainCircuit, FileText, Heart, Image as ImageIcon, Link2, Search, Send, ShieldCheck, Sparkles, Gauge, Users, Zap, Lightbulb } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight, BrainCircuit, FileText, Heart, Image as ImageIcon, Link2, Search, ShieldCheck, Sparkles, Gauge, Users, Zap, Lightbulb } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import mascot from "@/assets/mascot.png";
 
 export const Route = createFileRoute("/")({
@@ -121,9 +122,11 @@ function Index() {
 
         <section id="join" className="py-14">
           <div className="bg-cta rounded-[2rem] p-10 text-center text-primary-foreground shadow-soft md:p-14">
-            <h2 className="font-display text-3xl font-bold md:text-4xl">Платформа вже в розробці</h2>
-            <p className="mx-auto mt-4 max-w-xl opacity-90">Слідкуй за нами в Telegram, щоб першим спробувати FactGuard після запуску.</p>
-            <a href="#" className="mt-8 inline-flex items-center gap-2 rounded-full bg-background px-7 py-3.5 font-semibold text-primary"><Send className="h-5 w-5" /> Telegram-канал</a>
+            <h2 className="font-display text-3xl font-bold md:text-4xl">Час перевірити, а не повірити</h2>
+            <p className="mx-auto mt-4 max-w-xl opacity-90">Маєш підозрілу новину, пост чи фото? Дізнайся, що за ними стоїть.</p>
+            <Button asChild className="mt-8 h-auto rounded-full bg-background px-7 py-3.5 font-semibold text-primary hover:bg-secondary">
+              <Link to="/check"><Search className="h-5 w-5" /> Затестити FactGuard <ArrowRight className="h-4 w-4" /></Link>
+            </Button>
           </div>
         </section>
       </main>
