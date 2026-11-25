@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, BrainCircuit, Check, CircleAlert, FileText, Image as ImageIcon, Link2, LoaderCircle, Search, ShieldCheck, Sparkles, Upload, X } from "lucide-react";
@@ -73,7 +74,7 @@ function CheckPage() {
       <Link to="/" className="flex shrink-0 items-center gap-2 font-display text-lg font-bold sm:text-xl"><img src={mascot} alt="" width={40} height={40} className="h-10 w-10" />FactGuard</Link>
       <nav className="flex items-center gap-5 text-sm font-semibold">
         <Link to="/check" className="hidden border-b-2 border-primary py-2 text-primary sm:block">Перевірити</Link>
-        <Button asChild variant="outline" className="glass rounded-full"><Link to="/"><ArrowLeft /> <span className="hidden sm:inline">Про проєкт</span><span className="sm:hidden">Назад</span></Link></Button>
+        <ThemeToggle /><Button asChild variant="outline" className="glass rounded-full"><Link to="/"><ArrowLeft /> <span className="hidden sm:inline">Про проєкт</span><span className="sm:hidden">Назад</span></Link></Button>
       </nav>
     </header>
 

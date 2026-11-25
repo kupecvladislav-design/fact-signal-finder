@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BrainCircuit, FileText, Heart, Image as ImageIcon, Link2, Search, ShieldCheck, Sparkles, Gauge, Users, Zap, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import mascot from "@/assets/mascot.png";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,7 +48,7 @@ function Index() {
           <a href="#how" className="hover:text-primary">Як це працює</a>
           <a href="#mission" className="hover:text-primary">Місія</a>
         </nav>
-        <a href="#join" className="glass rounded-full px-5 py-2 text-sm font-semibold">Скоро запуск</a>
+        <div className="flex items-center gap-3"><ThemeToggle /><a href="#join" className="glass rounded-full px-5 py-2 text-sm font-semibold">Скоро запуск</a></div>
       </header>
 
       <main className="mx-auto max-w-6xl px-5">
