@@ -1,3 +1,5 @@
+import { ToolsNav, DepthPicker, ReportTools } from "@/components/factguard-tools";
+import type { CheckDepth } from "@/lib/factguard-evidence";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useServerFn } from "@tanstack/react-start";
@@ -38,6 +40,8 @@ function CheckPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [depth, setDepth] = useState<CheckDepth>("deep");
+  const [submittedText, setSubmittedText] = useState("");
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLElement>(null);
@@ -56,12 +60,13 @@ function CheckPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
-    const input = analysisInputSchema.safeParse({ mode, content: mode === "text" ? text : mode === "link" ? url : image });
+    const input = analysisInputSchema.safeParse({ mode, ...(mode === "text" ? { depth } : {}), content: mode === "text" ? text : mode === "link" ? url : image });
     if (!input.success) { setError(input.error.issues[0]?.message ?? "Додай матеріал для перевірки."); return; }
     setError(""); setReport(null); setBusy(true);
     try {
       const response = await analyze({ data: input.data });
       if (response.ok) {
+        setSubmittedText(input.data.mode === "text" ? input.data.content : "");
         setReport(response.report);
         requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" }));
       } else setError(response.error);
@@ -79,6 +84,7 @@ function CheckPage() {
     </header>
 
     <main className="mx-auto max-w-6xl px-5 pb-14">
+      <ToolsNav />
       <section className="relative pb-6 pt-7 sm:pt-10">
         <div className="relative z-10 max-w-2xl">
           <span className="inline-flex items-center gap-2 rounded-full bg-positive-soft px-4 py-2 text-xs font-semibold text-positive-foreground"><Sparkles className="h-4 w-4" /> Більше фактів — менше маніпуляцій</span>
@@ -88,6 +94,7 @@ function CheckPage() {
         <img src={mascot} alt="Маскот FactGuard зі щитом" width={1024} height={1024} className="animate-floaty absolute right-0 top-1 hidden w-[34%] max-w-sm lg:block" />
 
         <form onSubmit={submit} className="glass relative z-10 mt-7 max-w-3xl overflow-hidden rounded-3xl p-3 sm:p-4">
+          <DepthPicker value={mode === "text" ? depth : "deep"} onChange={setDepth} disabled={busy} textMode={mode === "text"} />
           <div role="tablist" aria-label="Тип матеріалу" className="flex border-b border-border">
             {modes.map((item) => <Button key={item.id} id={`tab-${item.id}`} aria-controls="analysis-input" role="tab" aria-selected={mode === item.id} type="button" variant="ghost" disabled={busy} onClick={() => { setMode(item.id); setError(""); setReport(null); }} className={`h-11 flex-1 rounded-none border-b-2 px-2 text-xs hover:bg-secondary hover:text-primary sm:flex-none sm:px-5 sm:text-sm ${mode === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}><item.icon />{item.title}</Button>)}
           </div>
@@ -101,7 +108,7 @@ function CheckPage() {
             </div>}
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4" /> Матеріал не зберігається</span>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4" /> Звіти зберігаються лише за твоїм вибором</span>
             <Button type="submit" disabled={busy || !(mode === "text" ? text.trim() : mode === "link" ? url.trim() : image)} className="h-12 w-full rounded-full bg-positive px-6 font-bold text-positive-foreground shadow-soft hover:bg-positive/80 sm:w-auto">{busy ? <LoaderCircle className="animate-spin" /> : <Sparkles />}{busy ? "Перевіряємо…" : "Аналізувати"}{!busy && <ArrowRight />}</Button>
           </div>
           {error && <p role="alert" className="mt-4 flex items-start gap-2 rounded-lg bg-destructive-soft p-3 text-sm text-destructive"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>}
@@ -117,7 +124,8 @@ function CheckPage() {
               <div><div className="text-base leading-relaxed"><AnalysisText>{report.summary}</AnalysisText></div><div className="mt-5 space-y-4">{report.findings.map((finding, index) => <div key={index} className="border-l-2 border-primary/30 pl-4"><h3 className="text-sm font-bold">{finding.title}</h3><div className="mt-1 text-sm leading-relaxed text-muted-foreground"><AnalysisText>{finding.explanation}</AnalysisText></div></div>)}</div></div>
             </div>
             <div className="border-y border-border py-5"><h3 className="flex items-center gap-2 text-sm font-bold"><ShieldCheck className="h-4 w-4 text-primary" />Що варто зробити</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{report.recommendation}</p></div>
-            <div className="pt-5"><h3 className="text-sm font-bold">Джерела перевірки</h3>{report.sources.length ? <ul className="mt-3 grid gap-3 sm:grid-cols-2">{report.sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 break-words text-sm text-primary underline-offset-4 hover:underline"><Link2 className="mt-0.5 h-4 w-4 shrink-0" />{source.title}</a></li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">Немає доступних посилань на джерела. Цей результат не є незалежним підтвердженням фактів.</p>}</div>
+            <div className="pt-5"><h3 className="text-sm font-bold">Знайдені джерела (не всі є доказами)</h3>{report.sources.length ? <ul className="mt-3 grid gap-3 sm:grid-cols-2">{report.sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 break-words text-sm text-primary underline-offset-4 hover:underline"><Link2 className="mt-0.5 h-4 w-4 shrink-0" />{source.title}</a></li>)}</ul> : <p className="mt-2 text-sm text-muted-foreground">Немає доступних посилань на джерела. Цей результат не є незалежним підтвердженням фактів.</p>}</div>
+            <ReportTools report={report} original={submittedText} />
           </div>
           : <div className="flex flex-col items-center justify-center gap-3 border-y border-border py-10 text-center"><Search className="h-8 w-8 text-primary/60" /><h2 className="font-display text-xl font-bold">Що перевіримо сьогодні?</h2><p className="max-w-lg text-sm text-muted-foreground">Не все, що звучить переконливо, є правдою.</p></div>}
       </section>

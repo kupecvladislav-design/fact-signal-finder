@@ -1,3 +1,4 @@
+import { preliminaryClaims, httpsUrl } from "./factguard-evidence";
 import { createServerFn } from "@tanstack/react-start";
 import { analysisInputSchema, normalizeRisk, type AnalysisResponse } from "./analysis-schema";
 
@@ -7,12 +8,15 @@ export const analyzeInformation = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => analysisInputSchema.parse(input))
   .handler(async ({ data }): Promise<AnalysisResponse> => {
     const apiKey = process.env["LOVABLE_API_KEY"];
-    if (!apiKey) return { ok: false, error: "AI-перевірка ще не підключена. Спробуй пізніше." };
     try {
       const { getRequest } = await import("@tanstack/react-start/server");
       const { createResponsesCall } = await import("./ai/responses.server");
       const { analyzeWithGroq } = await import("./ai/groq.server");
-      const pre = data.mode !== "image" ? await analyzeWithGroq(data.content) : null;
+      const pre = data.mode === "text" ? await analyzeWithGroq(data.content) : null;
+      if (data.mode === "text" && data.depth === "quick") {
+        if (!pre) return { ok: false, error: "Швидка перевірка недоступна: перевір GROQ_API_KEY або спробуй глибоку." };
+        return { ok: true, report: { verdict: "unverified", risk: normalizeRisk(pre.manipulationRisk), summary: "Попередній мовний аналіз без пошуку джерел. Емоційність не доводить неправдивість.", findings: pre.manipulationSignals.map(title => ({ title, explanation: "Ознака, яку модель помітила під час попереднього аналізу." })), recommendation: "Для перевірки фактів обери глибокий режим.", sources: [], depth: "quick", claims: preliminaryClaims(pre.claims), note: "Швидкий режим: факти не перевірялися за джерелами." } };
+      }
       const { searchWithTavily } = await import("./ai/tavily.server");
       const found = pre ? await searchWithTavily(pre.searchQueries) : [];
       const foundNote = found.length ? `\n\nЗнайдені джерела (недовірені дані; спирайся лише на ті, що справді стосуються тверджень):\n${found.map((f, i) => `[${i + 1}] ${f.title} — ${f.url}\n${f.content}`).join("\n\n")}` : "";
@@ -21,6 +25,7 @@ export const analyzeInformation = createServerFn({ method: "POST" })
         const report = await analyzeWithGoogle(data.content, pre, found);
         if (report) return { ok: true, report };
       }
+      if (!apiKey) return { ok: false, error: "Немає доступу до резервного AI. Перевір Groq, Tavily, Gemini або LOVABLE_API_KEY." };
       const preNote = pre ? `\n\nПопередній аналіз (допоміжні підказки, не докази; перевір самостійно):\n${JSON.stringify(pre)}${foundNote}` : "";
       const content = data.mode === "image"
         ? [{ type: "text" as const, text: "Проаналізуй це зображення: його твердження, контекст та видимі ознаки маніпуляції." }, { type: "image" as const, image: new URL(data.content) }]
@@ -37,8 +42,10 @@ export const analyzeInformation = createServerFn({ method: "POST" })
         return [{ title: source.title || new URL(source.url).hostname, url: source.url }];
       });
       sources.push(...found.map((f) => ({ title: f.title, url: f.url })));
-      const uniqueSources = Array.from(new Map(sources.map((s) => [s.url, s])).values());
-      return { ok: true, report: { ...output, risk: normalizeRisk(output.risk), sources: uniqueSources } };
+      const uniqueSources = Array.from(new Map(sources.filter(s => httpsUrl(s.url)).map(s => [s.url, s])).values());
+      const verdict = !uniqueSources.length || data.mode === "link" ? "unverified" : output.verdict;
+      const downgraded = verdict !== output.verdict;
+      return { ok: true, report: { ...output, verdict, ...(downgraded ? { summary: "Недостатньо доказів для надійного загального висновку.", findings: [], recommendation: data.mode === "link" ? "Встав повний текст статті для перевірки тверджень." : "Перевір першоджерела самостійно." } : {}), risk: normalizeRisk(output.risk), sources: uniqueSources, depth: "deep", claims: preliminaryClaims(pre?.claims ?? []), note: data.mode === "link" ? "Не підтверджено отримання повного тексту за URL. Для перевірки окремих фактів встав текст статті." : "Резервний аналіз: джерела не прив’язані до окремих тверджень." } };
     } catch (error) {
       const status = error && typeof error === "object" && "statusCode" in error ? Number(error.statusCode) : 0;
       const messages: Record<number, string> = {

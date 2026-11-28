@@ -1,3 +1,4 @@
+import { ToolsNav } from "@/components/factguard-tools";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BrainCircuit, FileText, Heart, Image as ImageIcon, Link2, Search, ShieldCheck, Sparkles, Gauge, Users, Zap, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ function Index() {
       </header>
 
       <main className="mx-auto max-w-6xl px-5">
+      <ToolsNav />
         <section className="grid items-center gap-8 py-10 lg:grid-cols-[1.1fr_1fr]">
           <div>
             <span className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm"><Sparkles className="h-4 w-4 text-primary" /> AI-платформа для перевірки інформації</span>
