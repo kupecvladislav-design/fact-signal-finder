@@ -2,6 +2,8 @@ import { normalizeEvidence, aggregateVerdict, preliminaryClaims } from "../factg
 import { analysisOutputSchema, normalizeRisk, type AnalysisReport } from "../analysis-schema";
 import type { PreliminaryAnalysis } from "./groq.server";
 import type { SearchSource } from "./tavily.server";
+import { googleModel } from "./google-model.server";
+import { providerFetch, logAI, type Execution } from "./telemetry.server";
 
 const GOOGLE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
@@ -38,12 +40,13 @@ export async function analyzeWithGoogle(
   content: string,
   preliminary: PreliminaryAnalysis,
   sources: SearchSource[],
+  execution?: Execution,
 ): Promise<AnalysisReport | null> {
   const apiKey = process.env["GOOGLE_AI_API_KEY"];
-  if (!apiKey) return null;
-  const model = process.env["GOOGLE_AI_MODEL"] ?? "gemini-3.8-flash";
+  const model = googleModel();
+  if (!apiKey) { logAI("Gemini", model, Date.now(), null, "configuration"); return null; }
   try {
-    const response = await fetch(`${GOOGLE_URL}/${encodeURIComponent(model)}:generateContent`, {
+    const response = await providerFetch("Gemini", model, `${GOOGLE_URL}/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       signal: AbortSignal.timeout(45000),
@@ -68,17 +71,16 @@ ${JSON.stringify(sources)}
         }],
         generationConfig: { temperature: 0.1, maxOutputTokens: 6000, responseMimeType: "application/json", responseSchema },
       }),
-    });
+    }, execution);
     if (!response.ok) {
-      console.error("Google AI error", response.status);
       return null;
     }
     const data = (await response.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
     const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("");
-    if (!text) return null;
+    if (!text) { logAI("Gemini", model, Date.now(), response.status, "invalid_response"); return null; }
     const raw: unknown = JSON.parse(text);
     const parsed = analysisOutputSchema.safeParse(raw);
-    if (!parsed.success) return null;
+    if (!parsed.success) { logAI("Gemini", model, Date.now(), response.status, "invalid_response"); return null; }
     const extras = normalizeEvidence(raw, content, sources);
     const claims = extras.claims?.length ? extras.claims : preliminaryClaims(preliminary.claims);
     const verdict = aggregateVerdict(claims);
@@ -93,8 +95,8 @@ ${JSON.stringify(sources)}
       risk: normalizeRisk(parsed.data.risk),
       sources: sources.map(({ title, url }) => ({ title, url })),
     };
-  } catch (error) {
-    console.error("Google AI analysis failed", error);
+  } catch {
+    logAI("Gemini", model, Date.now(), null, "invalid_response");
     return null;
   }
 }

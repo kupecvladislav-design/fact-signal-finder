@@ -18,24 +18,24 @@ export function preliminaryClaims(claims: string[]): CheckedClaim[] {
 // This validates provenance, not truth or whether the excerpt logically entails the claim.
 export function normalizeEvidence(raw: unknown, original: string, sources: SearchHit[]): ReportExtras {
   const r = object(raw);
-  const claims: CheckedClaim[] = list(r.claims).slice(0, 10).flatMap(item => {
-    const x = object(item), claim = text(x.claim, 500);
+  const claims: CheckedClaim[] = list(r["claims"]).slice(0, 10).flatMap(item => {
+    const x = object(item), claim = text(x["claim"], 500);
     if (!claim) return [];
-    const quote = text(x.quote, 500);
-    const evidence: Evidence[] = list(x.evidence).slice(0, 5).flatMap(item => {
-      const e = object(item), n = e.sourceIndex, excerpt = text(e.excerpt, 500);
+    const quote = text(x["quote"], 500);
+    const evidence: Evidence[] = list(x["evidence"]).slice(0, 5).flatMap(item => {
+      const e = object(item), n = e["sourceIndex"], excerpt = text(e["excerpt"], 500);
       if (typeof n !== "number" || !Number.isInteger(n) || n < 1 || n > sources.length) return [];
       const source = sources[n - 1];
-      if (!httpsUrl(source.url) || excerpt.length < 15 || !norm(source.content).includes(norm(excerpt))) return [];
+      if (!source || !httpsUrl(source.url) || excerpt.length < 15 || !norm(source.content).includes(norm(excerpt))) return [];
       return [{ title: source.title, url: source.url, excerpt }];
     });
     const distinct = new Map(evidence.map(e => [e.url, e]));
-    const requested = x.verdict;
+    const requested = x["verdict"];
     const verdict: FactVerdict = distinct.size && (requested === "supported" || requested === "false" || requested === "mixed") ? requested : "unverified";
-    return [{ claim, quote: quote && original.includes(quote) ? quote : "", verdict, explanation: verdict === "unverified" ? "Достатніх прив’язаних доказів немає. " + text(x.explanation) : text(x.explanation), evidence: [...distinct.values()] }];
+    return [{ claim, quote: quote && original.includes(quote) ? quote : "", verdict, explanation: verdict === "unverified" ? "Достатніх прив’язаних доказів немає. " + text(x["explanation"]) : text(x["explanation"]), evidence: [...distinct.values()] }];
   });
-  const signals: TextSignal[] = list(r.signals).slice(0, 12).flatMap(item => {
-    const x = object(item), quote = text(x.quote, 250), explanation = text(x.explanation, 500);
+  const signals: TextSignal[] = list(r["signals"]).slice(0, 12).flatMap(item => {
+    const x = object(item), quote = text(x["quote"], 250), explanation = text(x["explanation"], 500);
     return quote && explanation && original.includes(quote) ? [{ quote, explanation }] : [];
   });
   return { depth: "deep", claims, signals };

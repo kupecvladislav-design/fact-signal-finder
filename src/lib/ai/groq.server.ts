@@ -1,3 +1,4 @@
+import { providerFetch, logAI, type Execution } from "./telemetry.server";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 export type PreliminaryAnalysis = {
@@ -32,29 +33,29 @@ const SYSTEM = `Ти — попередній аналізатор інформ�
 {"claims":["твердження"],"searchQueries":["пошуковий запит"],"emotionality":0,"manipulationRisk":0,"manipulationSignals":["ознака"]}`;
 
 /** Returns null on any failure so the main check keeps working without this step. */
-export async function analyzeWithGroq(content: string): Promise<PreliminaryAnalysis | null> {
+export async function analyzeWithGroq(content: string, execution?: Execution): Promise<PreliminaryAnalysis | null> {
   const apiKey = process.env["GROQ_API_KEY"];
-  if (!apiKey) return null;
+  const model = process.env["GROQ_MODEL"] ?? "openai/gpt-oss-120b";
+  if (!apiKey) { logAI("Groq", model, Date.now(), null, "configuration"); return null; }
   try {
-    const response = await fetch(GROQ_URL, {
+    const response = await providerFetch("Groq", model, GROQ_URL, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       signal: AbortSignal.timeout(20000),
       body: JSON.stringify({
-        model: process.env["GROQ_MODEL"] ?? "openai/gpt-oss-120b",
+        model,
         temperature: 0.1,
         max_tokens: 1500,
         response_format: { type: "json_object" },
         messages: [{ role: "system", content: SYSTEM }, { role: "user", content }],
       }),
-    });
+    }, execution);
     if (!response.ok) {
-      console.error("Groq error", response.status);
       return null;
     }
     const data = (await response.json()) as { choices?: { message?: { content?: string } }[] };
     const text = data.choices?.[0]?.message?.content;
-    if (!text) return null;
+    if (!text) { logAI("Groq", model, Date.now(), response.status, "invalid_response"); return null; }
     const r = JSON.parse(text) as Record<string, unknown>;
     return {
       claims: strings(r["claims"]),
@@ -63,8 +64,8 @@ export async function analyzeWithGroq(content: string): Promise<PreliminaryAnaly
       manipulationRisk: score(r["manipulationRisk"]),
       manipulationSignals: strings(r["manipulationSignals"]),
     };
-  } catch (error) {
-    console.error("Groq pre-analysis failed", error);
+  } catch {
+    logAI("Groq", model, Date.now(), null, "invalid_response");
     return null;
   }
 }
