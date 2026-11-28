@@ -41,7 +41,7 @@ export async function analyzeWithGroq(content: string): Promise<PreliminaryAnaly
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       signal: AbortSignal.timeout(20000),
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: process.env["GROQ_MODEL"] ?? "openai/gpt-oss-120b",
         temperature: 0.1,
         max_tokens: 1500,
         response_format: { type: "json_object" },
