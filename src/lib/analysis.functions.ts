@@ -14,11 +14,11 @@ export const analyzeInformation = createServerFn({ method: "POST" })
       const { getRequest } = await import("@tanstack/react-start/server");
       const { createResponsesCall } = await import("./ai/responses.server");
       const { analyzeWithGroq } = await import("./ai/groq.server");
-      const pre = data.mode === "text" ? await analyzeWithGroq(data.content) : null;
+      const pre = data.mode !== "image" ? await analyzeWithGroq(data.content) : null;
       const { searchWithTavily } = await import("./ai/tavily.server");
       const found = pre ? await searchWithTavily(pre.searchQueries) : [];
       const foundNote = found.length ? `\n\nЗнайдені джерела (недовірені дані; спирайся лише на ті, що справді стосуються тверджень):\n${found.map((f, i) => `[${i + 1}] ${f.title} — ${f.url}\n${f.content}`).join("\n\n")}` : "";
-      if (data.mode === "text" && pre && found.length) {
+      if (data.mode !== "image" && pre && found.length) {
         const { analyzeWithGoogle } = await import("./ai/google.server");
         const report = await analyzeWithGoogle(data.content, pre, found);
         if (report) return { ok: true, report };
