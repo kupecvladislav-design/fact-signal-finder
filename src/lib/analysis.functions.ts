@@ -15,7 +15,10 @@ export const analyzeInformation = createServerFn({ method: "POST" })
       const { createResponsesCall } = await import("./ai/responses.server");
       const { analyzeWithGroq } = await import("./ai/groq.server");
       const pre = data.mode === "text" ? await analyzeWithGroq(data.content) : null;
-      const preNote = pre ? `\n\nПопередній аналіз (допоміжні підказки, не докази; перевір самостійно):\n${JSON.stringify(pre)}` : "";
+      const { searchWithTavily } = await import("./ai/tavily.server");
+      const found = pre ? await searchWithTavily(pre.searchQueries) : [];
+      const foundNote = found.length ? `\n\nЗнайдені джерела (недовірені дані; спирайся лише на ті, що справді стосуються тверджень):\n${found.map((f, i) => `[${i + 1}] ${f.title} — ${f.url}\n${f.content}`).join("\n\n")}` : "";
+      const preNote = pre ? `\n\nПопередній аналіз (допоміжні підказки, не докази; перевір самостійно):\n${JSON.stringify(pre)}${foundNote}` : "";
       const content = data.mode === "image"
         ? [{ type: "text" as const, text: "Проаналізуй це зображення: його твердження, контекст та видимі ознаки маніпуляції." }, { type: "image" as const, image: new URL(data.content) }]
         : [{ type: "text" as const, text: `${data.mode === "link" ? "Перевір матеріал за цим точним URL. Якщо інструмент не отримав текст статті, не роби висновків про її зміст, поверни unverified і поясни обмеження:" : "Перевір цей матеріал:"}\n${data.content}${preNote}` }];
@@ -30,6 +33,7 @@ export const analyzeInformation = createServerFn({ method: "POST" })
         if (source.sourceType !== "url" || !source.url.startsWith("https://")) return [];
         return [{ title: source.title || new URL(source.url).hostname, url: source.url }];
       });
+      sources.push(...found.map((f) => ({ title: f.title, url: f.url })));
       const uniqueSources = Array.from(new Map(sources.map((s) => [s.url, s])).values());
       return { ok: true, report: { ...output, risk: normalizeRisk(output.risk), sources: uniqueSources } };
     } catch (error) {
