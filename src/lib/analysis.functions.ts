@@ -13,9 +13,12 @@ export const analyzeInformation = createServerFn({ method: "POST" })
     try {
       const { getRequest } = await import("@tanstack/react-start/server");
       const { createResponsesCall } = await import("./ai/responses.server");
+      const { analyzeWithGroq } = await import("./ai/groq.server");
+      const pre = data.mode === "text" ? await analyzeWithGroq(data.content) : null;
+      const preNote = pre ? `\n\nПопередній аналіз (допоміжні підказки, не докази; перевір самостійно):\n${JSON.stringify(pre)}` : "";
       const content = data.mode === "image"
         ? [{ type: "text" as const, text: "Проаналізуй це зображення: його твердження, контекст та видимі ознаки маніпуляції." }, { type: "image" as const, image: new URL(data.content) }]
-        : [{ type: "text" as const, text: `${data.mode === "link" ? "Перевір матеріал за цим точним URL. Якщо інструмент не отримав текст статті, не роби висновків про її зміст, поверни unverified і поясни обмеження:" : "Перевір цей матеріал:"}\n${data.content}` }];
+        : [{ type: "text" as const, text: `${data.mode === "link" ? "Перевір матеріал за цим точним URL. Якщо інструмент не отримав текст статті, не роби висновків про її зміст, поверни unverified і поясни обмеження:" : "Перевір цей матеріал:"}\n${data.content}${preNote}` }];
       const { result } = createResponsesCall(getRequest(), {
         baseURL: "https://ai.gateway.lovable.dev/v1",
         apiKey,
