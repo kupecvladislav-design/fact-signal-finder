@@ -1,7 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { analysisInputSchema, normalizeRisk, type AnalysisReport } from "./analysis-schema";
-
-type AnalysisResponse = { ok: true; report: AnalysisReport } | { ok: false; error: string };
+import { analysisInputSchema, normalizeRisk, type AnalysisResponse } from "./analysis-schema";
 
 // Intentionally public: visitors can test the service without creating an account.
 // No inputs, images or reports are saved. Validation bounds each user-initiated request.

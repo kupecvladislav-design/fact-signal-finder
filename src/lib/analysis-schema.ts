@@ -20,3 +20,4 @@ export type AnalysisReport = z.infer<typeof analysisOutputSchema> & { sources: {
 export function normalizeRisk(value: number | null) {
   return value === null ? null : Math.round(Math.min(100, Math.max(0, value)));
 }
+export type AnalysisResponse = { ok: true; report: AnalysisReport } | { ok: false; error: string };
